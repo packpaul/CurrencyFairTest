@@ -48,7 +48,7 @@ public class TradingHall implements InitializingBean, DisposableBean  {
     }
     
     /**
-     * This method is intended to be called from {@code DelegatingProcessor}
+     * This method is intended to be called by different processors
      */
     public void updateTraders(final String endpoint) {
         broadcastingExecutor.execute(new Runnable() { 

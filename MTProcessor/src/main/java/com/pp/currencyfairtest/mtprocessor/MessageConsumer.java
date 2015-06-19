@@ -32,7 +32,7 @@ public class MessageConsumer {
     @Path("/test")  
     @Produces("text/plain")  
     public String test(){  
-        return "MessageConsumer WS is working.";
+        return "MessageConsumer Service is working.";
     }
     
     @POST
