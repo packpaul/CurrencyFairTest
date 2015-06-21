@@ -52,6 +52,7 @@
     <script src="js/jquery.rest.min.js"></script>
     
     <script type="text/javascript">
+        var appName = '/mtprocessor';
         var processorName = 'processor1';
         
         var maxConsoleLines = 25;
@@ -75,12 +76,12 @@
             var target;
 
             if (window.location.protocol == 'http:') {
-                target = 'ws://' + window.location.host + '/mtprocessor/ws/' + processorName;
+                target = 'ws://' + window.location.host + appName + '/ws/' + processorName;
             } else {
-                target = 'wss://' + window.location.host + '/mtprocessor/ws/' + processorName;
+                target = 'wss://' + window.location.host + appName + '/ws/' + processorName;
             }
 /*
-            target = 'ws://localhost:8080/mtprocessor/ws/' + processorName;
+            target = 'ws://localhost:8080' + appName + '/ws/' + processorName;
 */
             if ('WebSocket' in window) {
                 ws = new WebSocket(target);
@@ -126,9 +127,9 @@
         
         function update() {
             if (processorService == null) {
-                var client = new $.RestClient('/mtprocessor/api/processors/');
+                var client = new $.RestClient(appName + '/api/processors/');
 /*
-                var client = new $.RestClient('http://localhost:8080/mtprocessor/api/processors/');
+                var client = new $.RestClient('http://localhost:8080' + appName + '/api/processors/');
 */
 
                 processorService = client.add(processorName);
