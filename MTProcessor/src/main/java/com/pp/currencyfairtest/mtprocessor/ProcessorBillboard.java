@@ -5,10 +5,12 @@ import com.pp.currencyfairtest.mtprocessor.processors.MessageProcessor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -31,7 +33,12 @@ public class ProcessorBillboard implements ApplicationContextAware {
         Object processors = applicationContext.getBean("processors");
         setMessageProcessors((List) processors);
     }
-    
+
+    /**
+     * For some reason the spring autowiring didn't work with util:list with this component
+     * hence it's set over application {@link setApplicationContext()}
+     * @param processors 
+     */
 //    @Autowired
 //    @Qualifier("processors")
     private void setMessageProcessors(List<MessageProcessor> processors) {
@@ -57,17 +64,22 @@ public class ProcessorBillboard implements ApplicationContextAware {
     }
     
     @GET  
-    @Path("/{processorId}")  
+    @Path("/{processorId}")
     @Produces("application/json")  
-    public ProcessingBoard getBillboard(@PathParam("processorId") String processorId) {
-        return getBillboard(processorId, null);
+    public ProcessingBoard getBillboard(@PathParam("processorId") String processorId,
+                                        @Context HttpServletResponse servlerResponse) {
+        return getBillboard(processorId, null, servlerResponse);
     }
     
     @GET  
     @Path("/{processorId}/{snapshot}")  
     @Produces("application/json")  
     public ProcessingBoard getBillboard(
-            @PathParam("processorId") String processorId, @PathParam("snapshot") Long snapshot) {
+            @PathParam("processorId") String processorId, @PathParam("snapshot") Long snapshot,
+            @Context HttpServletResponse servlerResponse) {
+        
+        // The response header is set to enable testing on localhost
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
         
         MessageProcessor processor = processorsMap.get(processorId);
         if (processor == null) {

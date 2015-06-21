@@ -62,7 +62,9 @@ public class DelegatingMessageProcessor extends MessageProcessor implements Disp
     public ProcessingBoard getBoard(Object snapshot) {
         
         final Long snapshotConsumedId = (Long) snapshot;
+        
         final long lastConsumedId;
+        long firstConsumedId = 0;
         
         final List<Message> snapshotMessages;
         
@@ -80,6 +82,7 @@ public class DelegatingMessageProcessor extends MessageProcessor implements Disp
                     Message message = mi.next();
                     if (message.consumedId >= snapshotConsumedId.longValue()) {
                         snapshotMessages.add(message);
+                        firstConsumedId = message.consumedId;
                     } else {
                         break;
                     }
@@ -90,7 +93,8 @@ public class DelegatingMessageProcessor extends MessageProcessor implements Disp
         }
         
         DelegatingMessageProcessingBoard board = new DelegatingMessageProcessingBoard();
-        board.lastMessageConsumedId = lastConsumedId;
+        board.snapshot = lastConsumedId;
+        board.startingSnapshot = firstConsumedId;
         board.messages = snapshotMessages;
         
         return board;
