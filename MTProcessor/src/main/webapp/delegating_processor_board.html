@@ -1,0 +1,230 @@
+<!--
+  Copyright 2015 by Pavel Perminov (packpaul@mail.ru)
+  All code below is exclusively owned by its author - Pavel Perminov.
+  Any changes, modifications, borrowing and adaptation are a subject for
+  explicit permition from owner.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delegating processor board</title>
+    <style type="text/css">
+        #connect-container {
+            float: left;
+            width: 200px;
+        }
+
+        #connect-container div {
+            padding: 5px;
+        }
+        
+        #console p {
+            padding: 0;
+            margin: 0;
+        }
+
+        #console-container {
+            float: left;
+            margin-left: 15px;
+            width: 700px;
+        }
+
+        #console {
+            border: 1px solid #CCCCCC;
+            border-right-color: #999999;
+            border-bottom-color: #999999;
+            height: 550px;
+            overflow-y: scroll;
+            padding: 5px;
+            width: 100%;
+        }
+
+        #console p {
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+    
+    <!-- jQuery -->
+    <script src="js/jquery-1.11.3.min.js"></script>
+
+    <!-- jQuery rest -->
+    <script src="js/jquery.rest.min.js"></script>
+    
+    <script type="text/javascript">
+        var processorName = 'processor1';
+        
+        var maxConsoleLines = 25;
+//        var maxConsoleLines = 4;
+        var dataLinesLeft;
+        var dataSnapshot = 0;
+    
+        var ws = null;
+        var processorService = null;
+
+        function setConnected(connected) {
+            document.getElementById('connect').disabled = connected;
+            document.getElementById('disconnect').disabled = !connected;
+            
+            var status = document.getElementById('status');
+            status.removeChild(status.firstChild);
+            status.appendChild(document.createTextNode(connected ? 'Connection established' : 'Connection closed'));
+        }
+        
+        function connect() {
+            var target;
+
+            if (window.location.protocol == 'http:') {
+                target = 'ws://' + window.location.host + '/mtprocessor/ws/' + processorName;
+            } else {
+                target = 'wss://' + window.location.host + '/mtprocessor/ws/' + processorName;
+            }
+/*
+            target = 'ws://localhost:8080/mtprocessor/ws/' + processorName;
+*/
+            if ('WebSocket' in window) {
+                ws = new WebSocket(target);
+            } else if ('MozWebSocket' in window) {
+                ws = new MozWebSocket(target);
+            } else {
+                alert('WebSocket is not supported by this browser.');
+                return;
+            }
+            
+            ws.onopen = function () {
+//                log('Info: WebSocket connection opened.');
+                setConnected(true);
+                sendMessageWS('INIT');
+            };
+            ws.onmessage = function (event) {
+                onMessageWS(event.data);
+            };
+            ws.onclose = function () {
+                ws = null;
+                processorService = null;
+                setConnected(false);
+//                log('Info: WebSocket connection closed.');
+            };
+        }
+        
+        function sendMessageWS(message) {
+            _ws = ws;
+            if (_ws != null) {
+                _ws.send(message);
+//                log('>> ' + message);
+            }
+        }
+        
+        function onMessageWS(message) {
+//            log('<< ' + message);
+            if (event.data == 'UPDATE') {
+                update();
+            } else if (event.data == 'CLOSE') {
+                disconnect();
+            }
+        }
+        
+        function update() {
+            if (processorService == null) {
+                var client = new $.RestClient('/mtprocessor/api/processors/');
+/*
+                var client = new $.RestClient('http://localhost:8080/mtprocessor/api/processors/');
+*/
+
+                processorService = client.add(processorName);
+            }
+            
+            var request = processorService.read(dataSnapshot + 1);
+            request.done(
+                function(data, textStatus, xhrObject) {
+                    onData(data);
+                }
+            );
+        }
+        
+        function onData(data) {
+            if (dataLinesLeft == undefined) {
+                dataLinesLeft = Number(data.startingSnapshot) - 1;
+            }
+            
+            var _dataSnapshot = Number(data.snapshot);
+        
+            // Jersey on backend doesn't return data for empty collections, hence this workaround
+            var dataMessages = toArray(data.messages);
+            
+            for (var i = 0, j = _dataSnapshot - dataSnapshot; ((j > 0) && (i < dataMessages.length)); i++, j--) {
+                log(dataToString(dataMessages[i]));
+            }
+            
+            dataSnapshot = _dataSnapshot;
+        }
+        
+        function dataToString(d) {
+            return 'userId=' + d.userId + ',  ' +
+                   d.amountSell + ' ' + d.currencyFrom + ' -> ' + d.amountBuy + ' ' + d.currencyTo + ',  ' +
+                   'rate=' + d.rate + ',  ' +
+                   'time=' + d.timePlaced + ', country=' + d.originatingCountry;
+        }
+        
+        function toArray(obj) {
+            if (obj == undefined) {
+                return new Array(0);
+            }
+            if ($.isArray(obj)) {
+                return obj;
+            }
+            return new Array(obj);
+        }
+
+        function disconnect() {
+            if (ws != null) {
+                ws.close();
+                ws = null;
+                processorService = null;
+            }
+            setConnected(false);
+        }
+        
+        function log(message) {
+            var console = document.getElementById('console');
+            var p = document.createElement('p');
+            p.style.wordWrap = 'break-word';
+            p.appendChild(document.createTextNode(message));
+//            console.appendChild(p);
+            console.insertBefore(p, console.firstChild);
+            var isMore = (console.childNodes.length > maxConsoleLines);
+            while (console.childNodes.length > maxConsoleLines) {
+                console.removeChild(console.lastChild);
+            }
+            if (isMore) {
+                var pMore = document.createElement('p');
+                pMore.appendChild(document.createTextNode('...' + ++dataLinesLeft + ' more...'));
+                console.appendChild(pMore);
+            }
+//            console.scrollTop = console.scrollHeight;
+        }
+        
+        connect();
+
+    </script>
+</head>
+<body>
+<h2>Delegating processor board<h2/>
+<h6>Copyright 2015 by Pavel Perminov</h6>
+<noscript><h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websockets rely on Javascript being enabled. Please enable
+    Javascript and reload this page!</h2></noscript>
+<div>
+    <div id="connect-container">
+        <div>
+            <button id="connect" onclick="connect();">Connect</button>
+            <button id="disconnect" disabled="disabled" onclick="disconnect();">Disconnect</button>
+        </div>
+        <div id="status">
+        </div>
+    </div>
+    <div id="console-container">
+        <div id="console"></div>
+    </div>
+</div>
+</body>
+</html>
