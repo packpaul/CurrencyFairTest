@@ -9,7 +9,6 @@ package com.pp.currencyfairtest.mtprocessor.processors;
 
 import com.pp.currencyfairtest.mtprocessor.dto.DelegatingMessageProcessingBoard;
 import com.pp.currencyfairtest.mtprocessor.dto.Message;
-import com.pp.currencyfairtest.mtprocessor.dto.ProcessingBoard;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
@@ -42,7 +41,11 @@ public class DelegatingMessageProcessor extends MessageProcessor implements Disp
         processingExecutor.submit(new Runnable() {
             @Override
             public void run() {
-                process(message);
+                try {
+                    process(message);
+                } catch(Throwable tr) {
+                    LOGGER.error("Error on processing!", tr);
+                }
             }
         });
     }
@@ -62,13 +65,24 @@ public class DelegatingMessageProcessor extends MessageProcessor implements Disp
         } finally {
             rwLock.writeLock().unlock();
         }
-        tradingHall.updateTraders(endpoint);
+        
+        if (tradingHall != null) {
+            tradingHall.updateTraders(endpoint);
+        }
     }
 
     @Override
-    public ProcessingBoard getBoard(Object snapshot) {
+    public DelegatingMessageProcessingBoard getBoard(Object input) {
         
-        final Long snapshotConsumedId = (Long) snapshot;
+        final Long snapshotConsumedId;
+        
+        if (input == null) {
+            snapshotConsumedId = 0L;
+        } else if (input instanceof Long) {
+            snapshotConsumedId = (Long) input;
+        } else {
+            throw new IllegalArgumentException("Incorrect 'input' argument type!");
+        }
         
         final long lastConsumedId;
         long firstConsumedId = 0;
@@ -95,6 +109,7 @@ public class DelegatingMessageProcessor extends MessageProcessor implements Disp
                     }
                 }
             }
+            
         } finally {
             rwLock.readLock().unlock();
         }

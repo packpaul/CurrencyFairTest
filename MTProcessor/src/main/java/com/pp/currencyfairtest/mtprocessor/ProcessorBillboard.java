@@ -96,5 +96,25 @@ public class ProcessorBillboard implements ApplicationContextAware {
         
         return processor.getBoard(snapshot);
     }
+    
+    @GET  
+    @Path("/{processorId}/{snapshot}/{params}")  
+    @Produces("application/json")  
+    public ProcessingBoard getBillboard(
+            @PathParam("processorId") String processorId,
+            @PathParam("snapshot") Long snapshot, @PathParam("params") Object params,
+            @Context HttpServletResponse servlerResponse) {
+        
+        // The response header is set to enable testing on localhost
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        
+        MessageProcessor processor = processorsMap.get(processorId);
+        if (processor == null) {
+            LOGGER.warn("No processor (id={}) is registered!", processorId);
+            return null;
+        }
+        
+        return processor.getBoard(new Object[] {snapshot, params});
+    }
 
 }
