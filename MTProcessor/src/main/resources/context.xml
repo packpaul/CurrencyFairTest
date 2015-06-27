@@ -17,7 +17,7 @@
         <bean class="com.pp.currencyfairtest.mtprocessor.processors.DelegatingMessageProcessor">
             <property name="endpoint" value="/ws/processor1" />
         </bean>
-        <bean class="com.pp.currencyfairtest.mtprocessor.processors.DelegatingMessageProcessor">
+        <bean class="com.pp.currencyfairtest.mtprocessor.processors.CumulatingMessageProcessor">
             <property name="endpoint" value="/ws/processor2" />
         </bean>
     </util:list>

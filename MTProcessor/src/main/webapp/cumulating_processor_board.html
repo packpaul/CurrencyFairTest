@@ -7,11 +7,245 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Cumulating processor board</title>
+    <title>Cumulating processor board</title>
+    <style type="text/css">
+        #connect-container {
+            float: left;
+            width: 200px;
+        }
+
+        #connect-container div {
+            padding: 5px;
+        }
+        
+        #console p {
+            padding: 0;
+            margin: 0;
+        }
+
+        #console-container {
+            float: left;
+            margin-left: 15px;
+            width: 700px;
+        }
+
+        #console {
+            border: 1px solid #CCCCCC;
+            border-right-color: #999999;
+            border-bottom-color: #999999;
+            height: 550px;
+            overflow-y: scroll;
+            padding: 5px;
+            width: 100%;
+        }
+
+        #console p {
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+    
+    <!-- jQuery -->
+    <script src="js/jquery-1.11.3.min.js"></script>
+
+    <!-- jQuery rest -->
+    <script src="js/jquery.rest.min.js"></script>
+    
+    <script type="text/javascript">
+        var appName = '/mtprocessor';
+        var processorName = 'processor2';
+        
+        var dataSnapshot = 0;
+        var dataBoard;
+    
+        var ws = null;
+        var processorService = null;
+
+        function setConnected(connected) {
+            document.getElementById('connect').disabled = connected;
+            document.getElementById('disconnect').disabled = !connected;
+            
+            var status = document.getElementById('status');
+            status.removeChild(status.firstChild);
+            status.appendChild(document.createTextNode(connected ? 'Connection established' : 'Connection closed'));
+        }
+        
+        function connect() {
+            var target;
+/*
+            if (window.location.protocol == 'http:') {
+                target = 'ws://' + window.location.host + appName + '/ws/' + processorName;
+            } else {
+                target = 'wss://' + window.location.host + appName + '/ws/' + processorName;
+            }
+*/
+            target = 'ws://localhost:8080' + appName + '/ws/' + processorName;
+
+            if ('WebSocket' in window) {
+                ws = new WebSocket(target);
+            } else if ('MozWebSocket' in window) {
+                ws = new MozWebSocket(target);
+            } else {
+                alert('WebSocket is not supported by this browser.');
+                return;
+            }
+            
+            ws.onopen = function () {
+//                log('Info: WebSocket connection opened.');
+                setConnected(true);
+                sendMessageWS('INIT');
+            };
+            ws.onmessage = function (event) {
+                onMessageWS(event.data);
+            };
+            ws.onclose = function () {
+                ws = null;
+                processorService = null;
+                setConnected(false);
+//                log('Info: WebSocket connection closed.');
+            };
+        }
+        
+        function sendMessageWS(message) {
+            _ws = ws;
+            if (_ws != null) {
+                _ws.send(message);
+//                log('>> ' + message);
+            }
+        }
+        
+        function onMessageWS(message) {
+//            log('<< ' + message);
+            if (event.data == 'UPDATE') {
+                update();
+            } else if (event.data == 'CLOSE') {
+                disconnect();
+            }
+        }
+        
+        function update() {
+            if (processorService == null) {
+/*
+                var client = new $.RestClient(appName + '/api/processors/');
+*/
+                var client = new $.RestClient('http://localhost:8080' + appName + '/api/processors/');
+
+                processorService = client.add(processorName);
+            }
+            
+            var request = processorService.read(dataSnapshot + 1); // All countries
+            request.done(
+                function(data, textStatus, xhrObject) {
+                    onData(data);
+                }
+            );
+        }
+        
+        function onData(data) {
+            var _dataSnapshot = Number(data.snapshot);
+            var _dataBoard = dataBoard;
+            
+            if (_dataBoard == undefined) {
+                _dataBoard = new Object();
+                _dataBoard.country = data.country;
+                _dataBoard.currencies = new Array();
+            }
+        
+            // Jersey on backend doesn't return data for empty collections, hence this workaround
+            var currencySums = toArray(data.currencySums);
+            
+            for (var i = 0; (i < currencySums.length); i++) {
+                var currencySum = currencySums[i];
+                var currencyBag = _dataBoard.currencies[currencySum.currency];
+                if (currencyBag == undefined) {
+                    currencyBag = new Object();
+                    _dataBoard.currencies[currencySum.currency] = currencyBag;
+                    currencyBag.currency = currencySum.currency;
+                }
+                currencyBag.sum = Number(currencySum.sum);
+            }
+            
+            boardToView(_dataBoard);
+            
+            dataBoard = _dataBoard;
+            dataSnapshot = _dataSnapshot;
+        }
+        
+        function boardToView(board) {
+            clearLog();
+            
+            log(board.country + ':');
+            
+            for (var i in board.currencies) {
+                var currencyBag = board.currencies[i];
+                log(currencyBagToString(currencyBag));
+            }
+        }
+        
+        function currencyBagToString(currencyBag) {
+            return currencyBag.currency + ': ' + currencyBag.sum;
+        }
+        
+        function toArray(obj) {
+            if (obj == undefined) {
+                return new Array(0);
+            }
+            if ($.isArray(obj)) {
+                return obj;
+            }
+            return new Array(obj);
+        }
+
+        function disconnect() {
+            if (ws != null) {
+                ws.close();
+                ws = null;
+                processorService = null;
+            }
+            setConnected(false);
+        }
+        
+        function log(message) {
+            var console = document.getElementById('console');
+            var p = document.createElement('p');
+            p.style.wordWrap = 'break-word';
+            p.appendChild(document.createTextNode(message));
+            console.appendChild(p);
+//            console.insertBefore(p, console.firstChild);
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        function clearLog() {
+            var console = document.getElementById('console');
+            while (console.childNodes.length > 0) {
+                console.removeChild(console.lastChild);
+            }
+        }
+        
+        connect();
+
+    </script>
+
 </head>
 <body>
-<h2>Cumulating processor board<h2>
+<h2>Cumulating processor board</h2>
 <h6>Copyright 2015 by Pavel Perminov</h6>
-Under construction...
+<noscript><h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websockets rely on Javascript being enabled. Please enable
+    Javascript and reload this page!</h2></noscript>
+    
+<div>
+    <div id="connect-container">
+        <div>
+            <button id="connect" onclick="connect();">Connect</button>
+            <button id="disconnect" disabled="disabled" onclick="disconnect();">Disconnect</button>
+        </div>
+        <div id="status">
+        </div>
+    </div>
+    <div id="console-container">
+        <div id="console"></div>
+    </div>
+</div>
+
 </body>
 </html>

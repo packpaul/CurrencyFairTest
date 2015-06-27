@@ -102,7 +102,7 @@ public class ProcessorBillboard implements ApplicationContextAware {
     @Produces("application/json")  
     public ProcessingBoard getBillboard(
             @PathParam("processorId") String processorId,
-            @PathParam("snapshot") Long snapshot, @PathParam("params") Object params,
+            @PathParam("snapshot") Long snapshot, @PathParam("params") String params,
             @Context HttpServletResponse servlerResponse) {
         
         // The response header is set to enable testing on localhost
