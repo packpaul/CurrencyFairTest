@@ -9,6 +9,7 @@ package com.pp.currencyfairtest.mtprocessor.processors;
 
 import com.pp.currencyfairtest.mtprocessor.TradingHall;
 import com.pp.currencyfairtest.mtprocessor.api.MessageConsumable;
+import com.pp.currencyfairtest.mtprocessor.dto.Countries;
 import com.pp.currencyfairtest.mtprocessor.dto.ProcessingBoard;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -27,8 +28,18 @@ public abstract class MessageProcessor implements MessageConsumable {
     }
     
     /**
-     * This method is intended to be called by REST clients
+     * This method is intended to be called by REST clients.
      * @param snapshot  this parameter is interpreted on its own by processor subclasses.
+     * @return
      */
     public abstract ProcessingBoard getBoard(Object snapshot);
+
+    /**
+     * This method is intended to be called by REST clients.
+     * It returns countries for data that's already been processed.
+     * @return
+     */
+    public Countries getCountries() {
+        return new Countries();
+    }
 }

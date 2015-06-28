@@ -7,6 +7,7 @@
 
 package com.pp.currencyfairtest.mtprocessor.processors;
 
+import com.pp.currencyfairtest.mtprocessor.dto.Countries;
 import com.pp.currencyfairtest.mtprocessor.dto.CumulatingMessageProcessingBoard;
 import com.pp.currencyfairtest.mtprocessor.dto.CumulatingMessageProcessingBoard.CurrencySum;
 import com.pp.currencyfairtest.mtprocessor.dto.Message;
@@ -148,6 +149,20 @@ lock:   try {
         board.currencySums = (currencySums != null) ? currencySums : Collections.<CurrencySum>emptyList();
         
         return board;
+    }
+
+    @Override
+    public Countries getCountries() {
+        Countries countries = new Countries();
+        
+        rwLock.readLock().lock();
+        try {
+            countries.items = new ArrayList(countryToDataMap.keySet());
+        } finally {
+            rwLock.readLock().unlock();
+        }
+        
+        return countries;
     }
 
     private static class DataBag {

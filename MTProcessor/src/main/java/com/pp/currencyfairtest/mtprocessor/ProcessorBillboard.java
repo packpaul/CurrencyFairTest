@@ -7,6 +7,7 @@
 
 package com.pp.currencyfairtest.mtprocessor;
 
+import com.pp.currencyfairtest.mtprocessor.dto.Countries;
 import com.pp.currencyfairtest.mtprocessor.dto.ProcessingBoard;
 import com.pp.currencyfairtest.mtprocessor.processors.MessageProcessor;
 import java.util.HashMap;
@@ -115,6 +116,24 @@ public class ProcessorBillboard implements ApplicationContextAware {
         }
         
         return processor.getBoard(new Object[] {snapshot, params});
+    }
+    
+    @GET  
+    @Path("/{processorId}/countries")  
+    @Produces("application/json")  
+    public Countries getCountries(
+            @PathParam("processorId") String processorId, @Context HttpServletResponse servlerResponse) {
+        
+        // The response header is set to enable testing on localhost
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        
+        MessageProcessor processor = processorsMap.get(processorId);
+        if (processor == null) {
+            LOGGER.warn("No processor (id={}) is registered!", processorId);
+            return null;
+        }
+        
+        return processor.getCountries();
     }
 
 }
