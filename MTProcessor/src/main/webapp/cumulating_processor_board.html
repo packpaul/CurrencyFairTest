@@ -165,6 +165,10 @@
             // Jersey on backend doesn't return data for empty collections, hence this workaround
             var currencySums = toArray(data.currencySums);
             
+            if (currencySums.length == 0) {
+                return;
+            }
+            
             for (var i = 0; (i < currencySums.length); i++) {
                 var currencySum = currencySums[i];
                 var currencyBag = _dataBoard.currencies[currencySum.currency];
