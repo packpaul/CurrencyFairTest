@@ -83,15 +83,15 @@
         
         function connect() {
             var target;
-/*
+
             if (window.location.protocol == 'http:') {
                 target = 'ws://' + window.location.host + appName + '/ws/' + processorName;
             } else {
                 target = 'wss://' + window.location.host + appName + '/ws/' + processorName;
             }
-*/
+/*
             target = 'ws://localhost:8080' + appName + '/ws/' + processorName;
-
+*/
             if ('WebSocket' in window) {
                 ws = new WebSocket(target);
             } else if ('MozWebSocket' in window) {
@@ -136,11 +136,10 @@
         
         function update() {
             if (processorService == null) {
-/*
                 var client = new $.RestClient(appName + '/api/processors/');
-*/
+/*
                 var client = new $.RestClient('http://localhost:8080' + appName + '/api/processors/');
-
+*/
                 processorService = client.add(processorName);
             }
             
@@ -302,9 +301,7 @@
             update();
         }
         
-/*        
         connect();
-*/
     </script>
 
 </head>
