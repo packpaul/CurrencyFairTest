@@ -47,6 +47,10 @@
     
     <!-- jQuery -->
     <script src="js/jquery-1.11.3.min.js"></script>
+    
+    <!-- jQuery UI -->
+    <link href="css/jquery-ui-1.11.4.css" rel="stylesheet">
+    <script src="js/jquery-ui-1.11.4.min.js"></script>
 
     <!-- jQuery rest -->
     <script src="js/jquery.rest.min.js"></script>
@@ -55,6 +59,7 @@
         var appName = '/mtprocessor';
         var processorName = 'processor2';
         
+        var country = '*';
         var dataSnapshot = 0;
         var dataBoard;
     
@@ -62,8 +67,14 @@
         var processorService = null;
 
         function setConnected(connected) {
+            if (! connected) {
+                dataBoard = undefined;
+                dataSnapshot = 0;
+            }
+            
             document.getElementById('connect').disabled = connected;
-            document.getElementById('disconnect').disabled = !connected;
+            document.getElementById('disconnect').disabled = (! connected);
+            document.getElementById('selectCountryDialogOpener').disabled = (! connected);
             
             var status = document.getElementById('status');
             status.removeChild(status.firstChild);
@@ -133,7 +144,7 @@
                 processorService = client.add(processorName);
             }
             
-            var request = processorService.read(dataSnapshot + 1); // All countries
+            var request = processorService.read((dataSnapshot + 1) + '/' + country);
             request.done(
                 function(data, textStatus, xhrObject) {
                     onData(data);
@@ -149,6 +160,7 @@
                 _dataBoard = new Object();
                 _dataBoard.country = data.country;
                 _dataBoard.currencies = new Array();
+                updateUIFromNewDataBoard(_dataBoard);
             }
         
             // Jersey on backend doesn't return data for empty collections, hence this workaround
@@ -169,6 +181,12 @@
             
             dataBoard = _dataBoard;
             dataSnapshot = _dataSnapshot;
+        }
+        
+        function updateUIFromNewDataBoard(dataBoard) {
+            var status = document.getElementById('selectedCountry');
+            status.removeChild(status.firstChild);
+            status.appendChild(document.createTextNode(dataBoard.country));
         }
         
         function boardToView(board) {
@@ -222,8 +240,71 @@
             }
         }
         
-        connect();
+        function doOpenSelectCountryDialog() {
+            if (processorService == undefined) {
+                return;
+            }
+            
+            var request = processorService.read('countries');
+            request.done(
+                function(countries, textStatus, xhrObject) {
+                    openSelectCountryDialog(toArray(countries.items));
+                }
+            );
+        }
+        
+        function openSelectCountryDialog(countries) {
+            
+            var dialog = document.getElementById('selectCountryDialog');
+            while (dialog.childNodes.length > 0) {
+                dialog.removeChild(dialog.lastChild);
+            }
+            
+            createCountryItemInDialog(dialog, 'ALL', 0, '*', (country == '*'));
+            for(var i = 1, j = 0; i < countries.length; i++, j++) {
+                if (j % 8 == 0) {
+                    dialog.appendChild(document.createElement('br'));
+                }
+                createCountryItemInDialog(
+                        dialog, countries[i], i, countries[i], (country == countries[i]));
+            }
+            
+            $("#selectCountryDialog").dialog("open");
+        }
+        
+        function createCountryItemInDialog(dialog, country, id, value, isSelected) {
+            var countryItem  = document.createElement('input');
+            countryItem.id = id;
+            countryItem.type = 'radio';
+            countryItem.name = 'countries';
+            countryItem.value = value;
+            if (isSelected) {
+                countryItem.checked = 'checked';
+            }
+            dialog.appendChild(countryItem);
 
+            var countryLabel = document.createElement('label');
+            countryLabel.for = countryItem.id;
+            countryLabel.appendChild(document.createTextNode(country));
+            dialog.appendChild(countryLabel);
+        }
+        
+        function doSelectCountry() {
+            var selectedCountry = $("input[name='countries']:checked", "#selectCountryDialog").val();
+            if (selectedCountry == country) {
+                return;
+            }
+            
+            country = selectedCountry;
+            dataBoard = undefined;
+            dataSnapshot = 0;
+            
+            update();
+        }
+        
+/*        
+        connect();
+*/
     </script>
 
 </head>
@@ -241,11 +322,44 @@
         </div>
         <div id="status">
         </div>
+        <div>
+            <button id="selectCountryDialogOpener" onclick="doOpenSelectCountryDialog();">Select country</button>
+            <div id="selectedCountry">
+            </div>
+        </div>
     </div>
     <div id="console-container">
         <div id="console"></div>
     </div>
 </div>
+    
+<div id="selectCountryDialog" title="Select country">
+</div>
+    
+<script>
+  $("#selectCountryDialog").dialog({
+      autoOpen: false,
+      modal: true,
+      resizable: false,
+      width: 400,
+      buttons: [
+          {
+              text: "Ok",
+              click: function() {
+                  doSelectCountry();
+                  $(this).dialog("close");
+              }
+          },
+          {
+              text: "Cancel",
+              click: function() {
+                  $(this).dialog("close");
+              }
+          }
+      ]
+    });
+</script>
+
 
 </body>
 </html>
